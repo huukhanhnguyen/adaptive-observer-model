@@ -1,76 +1,118 @@
 # Adaptive Observer Model (AOM)
 
-**Adaptive Observer Model** is a design pattern for representing structured data as editable, observable entities. It is language-agnostic and implementation-independent, designed to handle dynamic and evolving data structures.
+**Adaptive Observer Model** (AOM) is a design pattern for turning any JSON-like data into a form builder or reactive structure. It is language-agnostic and implementation-independent, designed to handle dynamic and evolving data.
+
+> In AOM, **everything is a field**—a primitive value, a nested object, or a recursive tree node. Forms, settings panels, routing definitions—all become structured, reactive data.
 
 ## Design Goals
 
-* Automatically transform any JSON-like data into `editable` and `reactive` form
+* Automatically transform any JSON-like input into editable, observable fields
+* Treat flat and deeply nested structures uniformly
+* Enable full observation, mutation, and traversal at any level
 
-## Why Use Adaptive Observer Model?
+## Why Use AOM?
 
-* **Zero configuration**: Automatically adapts to any JSON-like structure — no schema or manual setup required.
-* **Unified abstraction**: Handles both flat and nested (tree-like) data consistently.
-* **Fine-grained observation**: Track and respond to changes at any depth or node.
-* **Composable & adaptable**: Ideal for form engines, configuration editors, interactive tools, or any system that involves structured data with change propagation.
+* **Zero config**: Works with any structure without schema or setup
+* **Unified model**: Consistent handling of arrays, objects, and trees
+* **Fine-grained reactivity**: Observe and respond to changes at any depth
+* **Composable & extensible**: Ideal for forms, editors, query builders, etc.
 
 ## Data Classification
 
-AOM categorizes data structures into two primary forms:
-
-### Generic Structure
-
-A flat structure refers to any non-recursive object or array. These are shallow and lack self-referencing elements. Examples include:
-
-* **Configuration objects**: `{ theme: 'dark', language: 'en', autosave: true }`
-* **Form data**: `{ name: 'Alice', age: 30, agreeToTerms: true }`
-* **API payloads**: `{ userId: 42, status: 'active' }`
-* **Flat tables or lists**: `[{ id: 1, name: 'Item A' }, { id: 2, name: 'Item B' }]`
-* **Query parameters**: `{ search: 'keyword', limit: 10 }`
-* **Spreadsheet-like records**
-* **Flat preferences or feature flags**
-
-### Tree Structure
-
-A tree structure is a recursive object where nodes can contain child nodes, typically under a key like `children`. Examples include:
-
-* **Category hierarchies**: product categories, taxonomy trees
-* **Navigation menus**: with submenus and nested links
-* **Comment threads**: replies nested under parent comments
-* **File systems**: folders with nested folders/files
-* **Abstract syntax trees (ASTs)**: parsed code structures
-* **Nested routing definitions**
-* **Scene graphs** in graphics engines
-
-## Parsing Rules
+AOM distinguishes two types of structures:
 
 ### Generic Data
 
-* **Primitive values** (string, number, boolean, null) become leaf nodes.
-* **Object or array** values become nested structures.
+Objects or arrays without recursive `children` keys.
+
+Examples:
+
+* `{ name: "Alice", age: 30 }`
+* `[ { id: 1 }, { id: 2 } ]`
+* `{ search: "term", page: 1 }`
+* Tabular or flat records
 
 ### Tree Data
 
-* Recognize the recursive key (default: `'children'`) as branch data.
-* All other properties are treated as node-level data and tracked reactively.
+Recursive data with nodes containing a consistent `children` key.
 
-## Class Summary
+Examples:
 
-| Class        | Extends     | Description                                                                                                     |
-| ------------ | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| `Notifier`   | –           | Event-driven system with `addListener(event, listener)`, `removeListener(event)`, `notify(event, ...args)`      |
-| `State`      | –           | Reactive key-value store. Provides `getEntry(key)`, `setEntry(key, value)`, `onChange(listener)`, `notify(key)` |
-| `FieldList`  | `Notifier`  | Reactive list of `items`. Emits events like `append`, `remove`, and supports full list manipulation.            |
-| `FieldNode`  | `State`     | Manages hierarchy: `parent`, `root`, `depth`, `ancestors`, `descendants`. Core unit for structured data.        |
-| `FieldState` | `FieldNode` | Extends `FieldNode` with validation: `entries: { value, errors, warnings, successes }`                          |
-| `FieldGroup` | `FieldNode` | Provides reactive `entries` and a `children: FieldList`. Suitable for object/array structures.                  |
-| `TreeField`  | `FieldNode` | Designed for tree-shaped data like `{ label: ..., children: [...] }`. Works with `TreeList`.                    |
-| `TreeList`   | `FieldList` | Specialized for arrays of tree nodes, e.g., `[{ label, children }]`. Supports hierarchical operations.          |
+* Category trees
+* Navigation menus
+* File systems
+* Comment threads
+* ASTs
+* Nested routing definitions
+
+## Core Concepts
+
+### FieldNode (Generic Data)
+**Constructor**
+
+  `let fieldNode = new FieldNode(defaultValue)`
+
+**Parsing Logic:**
+
+* `object` → `FieldNode` with child nodes for each key
+* `array` → `FieldNode` with child nodes for each item
+* Primitive → `FieldNode` of type `single`
+
+**Structure:**
+
+* `type`: single | array | object
+* `defaultValue`: original input
+* `children`: `FieldList` if `value` is object or array
+* `states`: transient UI state (label, collapsed, selected, etc.)
+* `validator`: function to validate current value
+
+**Reconstruction:**
+
+* `single` → returns `_value`
+* `array` → maps child values
+* `object` → rebuilds object from child names and values
+
+### FieldList (Generic Data)
+* `let filedList = new FieldList(defaultValue)`
+* Exposed for Usage when input data is array
+* Use as internal auto parsing as fieldNode.children
+* Extends from `ResusiveList`
+
+
+### TreeField
+**Constructor**
+
+  `let treeField = new TreeField(defaultValue,treeKey="children")`
+
+**Parsing Logic:**
+
+* Uses `treeKey` (default `'children'`) to detect recursion
+* Other properties stored as `entries`
+
+**Structure:**
+
+* `treeKey`: key used for recursion
+* `children`: `TreeList` present array of `TreeField` nodes
+* `entries`: key-value pairs excluding `treeKey`
+* `states`: transient UI state
+* `validator`: validates `entries`
+
+**Reconstruction:**
+
+* `object` Merges `entries` and recursive `children` under `treeKey`
+
+### TreeList
+* `let treeField = new TreeList(defaultValue,treeKey="children")`
+* Exposed for Usage when input data is array like categories
+* Use as internal auto parsing as treeField.children
+* Extends from `ResusiveList`
 
 ## Implementation
 
-### JavaScript Libraries
+### JavaScript Library
 
-* [domphy/form](https://docs.domphy.com/form)
-* [domphy/tree](https://docs.domphy.com/form)
+📦 [`domphy/struct`](https://docs.domphy.com/struct)
 
-License: MIT Copyright: 2025 Author: [Khánh Nguyễn](https://github.com/huukhanhnguyen)
+## License
+
+MIT © 2025 [Khánh Nguyễn](https://github.com/huukhanhnguyen)
