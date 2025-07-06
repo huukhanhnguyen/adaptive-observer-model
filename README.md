@@ -76,7 +76,7 @@ Examples:
 * `let filedList = new FieldList(defaultValue)`
 * Exposed for Usage when input data is array
 * Use as internal auto parsing as fieldNode.children
-* Extends from `ResusiveList`
+* Extends from `ReactiveList`
 
 
 ### TreeField
@@ -105,7 +105,7 @@ Examples:
 * `let treeField = new TreeList(defaultValue,treeKey="children")`
 * Exposed for Usage when input data is array like categories
 * Use as internal auto parsing as treeField.children
-* Extends from `ResusiveList`
+* Extends from `ReactiveList`
 
 ## Implementation
 
