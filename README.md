@@ -87,6 +87,7 @@ Examples:
 **Parsing Logic:**
 
 * Uses `treeKey` (default `'children'`) to detect recursion
+* `treeKey` can be a function (object)=>string to dynamic detect `treeKey` base on tree object data
 * Other properties stored as `entries`
 
 **Structure:**
